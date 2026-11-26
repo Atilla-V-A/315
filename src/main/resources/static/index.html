@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group 4 - Real-Time Shipment Tracking</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1e293b;
+            margin-bottom: 30px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: #0f172a;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-green {
+            background: #16a34a;
+        }
+
+        .btn-green:hover {
+            background: #15803d;
+        }
+
+        .alert {
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            display: block;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            display: block;
+        }
+
+        .shipment-item {
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #f8fafc;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .history-list {
+            margin-top: 10px;
+            padding-left: 20px;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📦 Real-Time Shipment Tracking System (Group 4)</h1>
+
+        <div class="grid">
+            <!-- 1. Yeni Kargo Oluşturma -->
+            <div class="card">
+                <h2>1. Yeni Kargo Oluştur</h2>
+                <div class="form-group">
+                    <label>Gönderici Adı</label>
+                    <input type="text" id="senderName" placeholder="Örn: Ahmet Yılmaz">
+                </div>
+                <div class="form-group">
+                    <label>Alıcı Adı</label>
+                    <input type="text" id="receiverName" placeholder="Örn: Ayşe Demir">
+                </div>
+                <div class="form-group">
+                    <label>Varış Adresi</label>
+                    <input type="text" id="destinationAddress" placeholder="Örn: Çankaya, Ankara">
+                </div>
+                <button onclick="createShipment()">Kargo Oluştur</button>
+                <div id="createAlert" class="alert"></div>
+            </div>
+
+            <!-- 2. Konum ve Durum Güncelleme (Kafka Akışı) -->
+            <div class="card">
+                <h2>2. Konum / Durum Güncelle</h2>
+                <div class="form-group">
+                    <label>Takip Numarası</label>
+                    <input type="text" id="updateTracking" placeholder="Örn: TRK-A1B2C3">
+                </div>
+                <div class="form-group">
+                    <label>Güncel Konum</label>
+                    <input type="text" id="currentLocation" placeholder="Örn: İstanbul Aktarma Merkezi">
+                </div>
+                <div class="form-group">
+                    <label>Kargo Durumu</label>
+                    <select id="status">
+                        <option value="IN_TRANSIT">Yolda (IN_TRANSIT)</option>
+                        <option value="OUT_FOR_DELIVERY">Dağıtımda (OUT_FOR_DELIVERY)</option>
+                        <option value="DELIVERED">Teslim Edildi (DELIVERED)</option>
+                    </select>
+                </div>
+                <button class="btn-green" onclick="updateLocation()">Konumu Güncelle (Send Event)</button>
+                <div id="updateAlert" class="alert"></div>
+            </div>
+        </div>
+
+        <!-- 3. Kargo Sorgulama & Tüm Kargolar -->
+        <div class="card">
+            <h2>3. Kargo Takip & Aktif Gönderiler</h2>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="searchTracking" placeholder="Takip Numarası Girin (Örn: TRK-123456)">
+                <button style="width: 180px; margin-top: 0;" onclick="trackShipment()">Sorgula</button>
+                <button style="width: 180px; margin-top: 0; background: #475569;" onclick="loadAllShipments()">Tümünü
+                    Listele</button>
+            </div>
+            <div id="searchAlert" class="alert"></div>
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api/shipments';
+
+        function showAlert(elementId, message, isSuccess) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = 'alert ' + (isSuccess ? 'alert-success' : 'alert-error');
+        }
+
+        async function createShipment() {
+            const body = {
+                senderName: document.getElementById('senderName').value,
+                receiverName: document.getElementById('receiverName').value,
+                destinationAddress: document.getElementById('destinationAddress').value
+            };
+
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                showAlert('createAlert', `Kargo oluşturuldu! Takip No: ${data.trackingNumber}`, true);
+                document.getElementById('updateTracking').value = data.trackingNumber;
+                document.getElementById('searchTracking').value = data.trackingNumber;
+                loadAllShipments();
+            } else {
+                const errMsg = data.details ? Object.values(data.details).join(', ') : data.message;
+                showAlert('createAlert', 'Hata: ' + errMsg, false);
+            }
+        }
+
+        async function updateLocation() {
+            const tracking = document.getElementById('updateTracking').value.trim();
+            if (!tracking) {
+                showAlert('updateAlert', 'Lütfen takip numarası girin.', false);
+                return;
+            }
+
+            const body = {
+                currentLocation: document.getElementById('currentLocation').value,
+                status: document.getElementById('status').value
+            };
+
+            const res = await fetch(`${API_URL}/${tracking}/location`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                showAlert('updateAlert', data.message, true);
+                trackShipmentById(tracking);
+            } else {
+                const errMsg = data.details ? Object.values(data.details).join(', ') : data.message;
+                showAlert('updateAlert', 'Hata: ' + errMsg, false);
+            }
+        }
+
+        async function trackShipment() {
+            const tracking = document.getElementById('searchTracking').value.trim();
+            if (!tracking) return;
+            trackShipmentById(tracking);
+        }
+
+        async function trackShipmentById(tracking) {
+            const res = await fetch(`${API_URL}/${tracking}`);
+            const data = await res.json();
+            const resultsDiv = document.getElementById('results');
+
+            if (res.ok) {
+                document.getElementById('searchAlert').className = 'alert';
+                resultsDiv.innerHTML = renderShipmentCard(data);
+            } else {
+                showAlert('searchAlert', `Hata (${data.status}): ${data.message}`, false);
+                resultsDiv.innerHTML = '';
+            }
+        }
+
+        async function loadAllShipments() {
+            const res = await fetch(API_URL);
+            const list = await res.json();
+            const resultsDiv = document.getElementById('results');
+            document.getElementById('searchAlert').className = 'alert';
+
+            if (list.length === 0) {
+                resultsDiv.innerHTML = '<p>Henüz kayıtlı kargo bulunmuyor.</p>';
+                return;
+            }
+            resultsDiv.innerHTML = list.map(renderShipmentCard).join('');
+        }
+
+        function renderShipmentCard(s) {
+            const historyHtml = (s.history || []).map(h =>
+                `<li><strong>${h.status}</strong> - ${h.location} <small>(${new Date(h.time).toLocaleString()})</small></li>`
+            ).join('');
+
+            return `
+            <div class="shipment-item">
+                <div><strong>Takip No:</strong> ${s.trackingNumber} <span class="badge">${s.status}</span></div>
+                <div style="margin-top:5px;"><strong>Gönderici:</strong> ${s.senderName} → <strong>Alıcı:</strong> ${s.receiverName} (${s.destinationAddress})</div>
+                <div><strong>Son Konum:</strong> ${s.currentLocation}</div>
+                <ul class="history-list">${historyHtml}</ul>
+            </div>
+        `;
+        }
+
+        loadAllShipments();
+    </script>
+</body>
+
+</html>
