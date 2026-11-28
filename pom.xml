@@ -55,10 +55,10 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<!-- 5. Mesajlasma Katmani - Kafka (Ekip Arkadasin Icin) -->
+		<!-- 5. messaging - Kafka  -->
 		<dependency>
-			<groupId>org.springframework.kafka</groupId>
-			<artifactId>spring-kafka</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-kafka</artifactId>
 		</dependency>
 
 		<!-- 6. Lombok -->
