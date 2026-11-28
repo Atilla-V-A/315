@@ -9,11 +9,19 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.example.demo.messaging.LocationEventPublisher;
+import com.example.demo.messaging.event.LocationUpdateEvent;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
 @Service
 public class ShipmentService {
 
     // Veritabani baglanana kadar gecici hafiza (In-Memory)
     private final Map<String, Map<String, Object>> shipmentStore = new ConcurrentHashMap<>();
+
+    private final Map<String, Map<String, Object>> shipmentStrore = new ConcurrentHashMap<>();
+    private final LocationEventPublisher locationEventPublisher;
 
     public Map<String, Object> createShipment(CreateShipmentRequest request) {
         String trackingNumber = "TRK-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
@@ -48,7 +56,8 @@ public class ShipmentService {
     public void publishLocationUpdate(String trackingNumber, LocationUpdateRequest request) {
         Map<String, Object> shipment = getShipmentByTrackingNumber(trackingNumber);
         
-        // TODO: Kafka katmani geldiginde burasi Kafka Producer'a mesaj atacak
+        locationEventPublisher.publish(
+                LocationUpdateEvent.of(trackingNumber, request.getCurrentLocation(), request.getStatus()));
         shipment.put("currentLocation", request.getCurrentLocation());
         shipment.put("status", request.getStatus());
         
